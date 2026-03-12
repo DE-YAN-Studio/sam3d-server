@@ -1,0 +1,21 @@
+# outputs
+td/work/
+inputs/
+*.log
+sam3d_server.log
+
+# model checkpoints (downloaded separately)
+checkpoints/
+
+# claude
+.claude/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# windows
+Thumbs.db
+desktop.ini
