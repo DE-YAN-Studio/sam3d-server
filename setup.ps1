@@ -163,6 +163,12 @@ if ($pipCheck -match "OK") {
     Write-Host "    Installing diff-gaussian-rasterization mip-splatting fork (compiling CUDA extension, ~5-10 min)..." -ForegroundColor White
     Invoke-WSL "$pipEnv && pip install 'git+https://github.com/autonomousvision/mip-splatting.git#subdirectory=submodules/diff-gaussian-rasterization' -q" | Out-Null
     Write-Ok "diff-gaussian-rasterization installed"
+
+    Write-Host "    Installing nvdiffrast (required for UV texture baking)..." -ForegroundColor White
+    # pip-system-certs interferes with the nvdiffrast build; remove it first, then
+    # use --no-build-isolation so the build can find the already-installed PyTorch.
+    Invoke-WSL "$pipEnv && pip uninstall pip-system-certs -y 2>/dev/null; pip install --no-build-isolation 'git+https://github.com/NVlabs/nvdiffrast.git' -q" | Out-Null
+    Write-Ok "nvdiffrast installed"
 }
 
 # ── stage 4c: Copy server.py to WSL ──────────────────────────────────────
