@@ -159,6 +159,10 @@ if ($pipCheck -match "OK") {
     Write-Host "    Applying hydra patch..." -ForegroundColor White
     Invoke-WSL "$pipEnv && ./patching/hydra" | Out-Null
     Write-Ok "Hydra patch applied"
+
+    Write-Host "    Installing diff-gaussian-rasterization (compiling CUDA extension, ~5-10 min)..." -ForegroundColor White
+    Invoke-WSL "$pipEnv && pip install git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git -q" | Out-Null
+    Write-Ok "diff-gaussian-rasterization installed"
 }
 
 # ── stage 4c: Copy server.py to WSL ──────────────────────────────────────
