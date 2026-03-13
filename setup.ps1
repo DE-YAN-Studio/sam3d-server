@@ -160,8 +160,8 @@ if ($pipCheck -match "OK") {
     Invoke-WSL "$pipEnv && ./patching/hydra" | Out-Null
     Write-Ok "Hydra patch applied"
 
-    Write-Host "    Installing diff-gaussian-rasterization (compiling CUDA extension, ~5-10 min)..." -ForegroundColor White
-    Invoke-WSL "$pipEnv && pip install git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git -q" | Out-Null
+    Write-Host "    Installing diff-gaussian-rasterization mip-splatting fork (compiling CUDA extension, ~5-10 min)..." -ForegroundColor White
+    Invoke-WSL "$pipEnv && pip install 'git+https://github.com/autonomousvision/mip-splatting.git#subdirectory=submodules/diff-gaussian-rasterization' -q" | Out-Null
     Write-Ok "diff-gaussian-rasterization installed"
 }
 
