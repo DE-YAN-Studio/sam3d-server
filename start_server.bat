@@ -8,5 +8,5 @@ echo  Health:      http://localhost:8766/health
 echo.
 echo  Press Ctrl+C to stop.
 echo.
-wsl -e bash -ic "source ~/miniconda3/etc/profile.d/conda.sh && conda activate sam3d-objects && cd ~/sam-3d-objects && python server.py"
+wsl -e bash -c "source /home/zachk/miniconda3/etc/profile.d/conda.sh && conda activate sam3d-objects && cd ~/sam-3d-objects && python server.py"
 pause
