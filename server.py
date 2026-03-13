@@ -82,6 +82,7 @@ class GenerateRequest(BaseModel):
     output_path: str
     format: str = "glb"
     seed: int = 42
+    texture_baking: bool = True       # True = UV textures, False = vertex colors
 
 
 # ── endpoints ────────────────────────────────────────────────────────────
@@ -119,8 +120,19 @@ def generate(req: GenerateRequest):
             mask = np.ones(img.shape[:2], dtype=bool)
             log.info("No mask provided, using full-image mask.")
 
-        log.info("Running inference (format=%s, seed=%d)...", fmt, req.seed)
-        output = _inference(img, mask, seed=req.seed)
+        log.info("Running inference (format=%s, seed=%d, texture_baking=%s)...", fmt, req.seed, req.texture_baking)
+        rgba = _inference.merge_mask_to_rgba(img, mask)
+        output = _inference._pipeline.run(
+            rgba,
+            None,
+            req.seed,
+            stage1_only=False,
+            with_mesh_postprocess=False,
+            with_texture_baking=req.texture_baking,
+            with_layout_postprocess=False,
+            use_vertex_color=not req.texture_baking,
+            stage1_inference_steps=None,
+        )
         log.info("Inference complete.")
 
         out_path = Path(out_wsl)

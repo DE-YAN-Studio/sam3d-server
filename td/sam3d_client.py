@@ -54,40 +54,43 @@ def generate(
     format="glb",
     output_path=None,
     seed=42,
+    texture_baking=True,
 ):
     """
     Non-blocking — runs inference in a background thread.
 
     Args:
-        image_path:  Windows path to the input RGB image.
-        mask_path:   Windows path to the binary mask (grayscale). Optional —
-                     if omitted, the full image is reconstructed.
-        format:      "glb" (default) or "obj".
-        output_path: Where to save the result. Defaults to WORK_DIR/output.<ext>.
-        seed:        Random seed.
+        image_path:     Windows path to the input RGB image.
+        mask_path:      Windows path to the binary mask (grayscale). Optional —
+                        if omitted, the full image is reconstructed.
+        format:         "glb" (default) or "obj".
+        output_path:    Where to save the result. Defaults to WORK_DIR/output.<ext>.
+        seed:           Random seed.
+        texture_baking: True (default) = UV texture maps. False = vertex colors.
     """
     if output_path is None:
         ext = "glb" if format == "glb" else "obj"
         output_path = os.path.join(WORK_DIR, f"output.{ext}").replace("\\", "/")
 
     job_id = _next_job_id()
-    print(f"[SAM3D] Job {job_id} started (format={format}, seed={seed})")
+    print(f"[SAM3D] Job {job_id} started (format={format}, seed={seed}, texture_baking={texture_baking})")
 
     thread = threading.Thread(
         target=_worker,
-        args=(job_id, image_path, mask_path, format, output_path, seed),
+        args=(job_id, image_path, mask_path, format, output_path, seed, texture_baking),
         daemon=True,
     )
     thread.start()
     return job_id
 
 
-def _worker(job_id, image_path, mask_path, format, output_path, seed):
+def _worker(job_id, image_path, mask_path, format, output_path, seed, texture_baking):
     payload = {
-        "image_path":  image_path.replace("\\", "/"),
-        "output_path": output_path.replace("\\", "/"),
-        "format":      format,
-        "seed":        seed,
+        "image_path":     image_path.replace("\\", "/"),
+        "output_path":    output_path.replace("\\", "/"),
+        "format":         format,
+        "seed":           seed,
+        "texture_baking": texture_baking,
     }
     if mask_path:
         payload["mask_path"] = mask_path.replace("\\", "/")
