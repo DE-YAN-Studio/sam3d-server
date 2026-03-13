@@ -20,7 +20,17 @@ Response:
 """
 
 import sys
+import os
 import logging
+
+# inference.py reads CONDA_PREFIX to set CUDA_HOME.
+# When launched without `conda activate`, this variable is not set.
+# Derive it from the Python executable path so the server works
+# when called directly (e.g. from start_server.bat).
+if "CONDA_PREFIX" not in os.environ:
+    _bin = os.path.dirname(sys.executable)
+    if _bin.endswith("/bin") or _bin.endswith("\\bin"):
+        os.environ["CONDA_PREFIX"] = os.path.dirname(_bin)
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
