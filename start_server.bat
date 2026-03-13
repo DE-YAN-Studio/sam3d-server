@@ -8,5 +8,5 @@ echo  Health:      http://localhost:8766/health
 echo.
 echo  Press Ctrl+C to stop.
 echo.
-wsl -e bash -c "cd /home/zachk/sam-3d-objects && /home/zachk/miniconda3/envs/sam3d-objects/bin/python server.py"
+wsl -e bash -c "cd /home/zachk/sam-3d-objects && /home/zachk/miniconda3/envs/sam3d-objects/bin/python -u server.py"
 pause

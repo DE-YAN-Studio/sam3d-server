@@ -21,7 +21,12 @@ Response:
 
 import sys
 import os
-import logging
+
+# Force unbuffered output so logs appear immediately in the terminal
+os.environ["PYTHONUNBUFFERED"] = "1"
+
+print("[SAM3D] Starting...", flush=True)
+print("[SAM3D] Loading Python dependencies (this takes ~30s)...", flush=True)
 
 # inference.py reads CONDA_PREFIX to set CUDA_HOME.
 # When launched without `conda activate`, this variable is not set.
@@ -31,6 +36,8 @@ if "CONDA_PREFIX" not in os.environ:
     _bin = os.path.dirname(sys.executable)
     if _bin.endswith("/bin") or _bin.endswith("\\bin"):
         os.environ["CONDA_PREFIX"] = os.path.dirname(_bin)
+
+import logging
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -48,7 +55,11 @@ from inference import Inference  # noqa: E402
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
+    stream=sys.stdout,
+    force=True,
 )
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 log = logging.getLogger(__name__)
 
 PORT = 8766
