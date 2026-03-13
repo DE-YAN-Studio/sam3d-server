@@ -55,6 +55,7 @@ def generate(
     output_path=None,
     seed=42,
     texture_baking=True,
+    texture_size=1024,
 ):
     """
     Non-blocking — runs inference in a background thread.
@@ -67,30 +68,32 @@ def generate(
         output_path:    Where to save the result. Defaults to WORK_DIR/output.<ext>.
         seed:           Random seed.
         texture_baking: True (default) = UV texture maps. False = vertex colors.
+        texture_size:   Texture resolution: 1024 (default), 2048, or 4096.
     """
     if output_path is None:
         ext = "glb" if format == "glb" else "obj"
         output_path = os.path.join(WORK_DIR, f"output.{ext}").replace("\\", "/")
 
     job_id = _next_job_id()
-    print(f"[SAM3D] Job {job_id} started (format={format}, seed={seed}, texture_baking={texture_baking})")
+    print(f"[SAM3D] Job {job_id} started (format={format}, seed={seed}, texture_baking={texture_baking}, texture_size={texture_size})")
 
     thread = threading.Thread(
         target=_worker,
-        args=(job_id, image_path, mask_path, format, output_path, seed, texture_baking),
+        args=(job_id, image_path, mask_path, format, output_path, seed, texture_baking, texture_size),
         daemon=True,
     )
     thread.start()
     return job_id
 
 
-def _worker(job_id, image_path, mask_path, format, output_path, seed, texture_baking):
+def _worker(job_id, image_path, mask_path, format, output_path, seed, texture_baking, texture_size):
     payload = {
         "image_path":     image_path.replace("\\", "/"),
         "output_path":    output_path.replace("\\", "/"),
         "format":         format,
         "seed":           seed,
         "texture_baking": texture_baking,
+        "texture_size":   texture_size,
     }
     if mask_path:
         payload["mask_path"] = mask_path.replace("\\", "/")

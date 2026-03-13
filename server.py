@@ -11,7 +11,8 @@ Request body (JSON):
     "mask_path":   "C:/path/to/mask.png",
     "output_path": "C:/path/to/output.glb",
     "format":      "glb",   // "glb" (default) or "obj"
-    "seed":        42
+    "seed":        42,
+    "texture_size": 1024    // 1024, 2048, or 4096
   }
 
 Response:
@@ -104,6 +105,7 @@ class GenerateRequest(BaseModel):
     format: str = "glb"
     seed: int = 42
     texture_baking: bool = True       # True = UV textures, False = vertex colors
+    texture_size: int = 1024          # texture resolution: 1024, 2048, or 4096
 
 
 # ── endpoints ────────────────────────────────────────────────────────────
@@ -125,6 +127,9 @@ def generate(req: GenerateRequest):
     if fmt not in ("glb", "obj"):
         raise HTTPException(400, detail=f"Unsupported format '{req.format}'. Use 'glb' or 'obj'.")
 
+    if req.texture_size not in (512, 1024, 2048, 4096):
+        raise HTTPException(400, detail="texture_size must be 512, 1024, 2048, or 4096.")
+
     if not _lock.acquire(blocking=False):
         raise HTTPException(503, detail="Server is busy with another request.")
 
@@ -141,19 +146,57 @@ def generate(req: GenerateRequest):
             mask = np.ones(img.shape[:2], dtype=bool)
             log.info("No mask provided, using full-image mask.")
 
-        log.info("Running inference (format=%s, seed=%d, texture_baking=%s)...", fmt, req.seed, req.texture_baking)
-        rgba = _inference.merge_mask_to_rgba(img, mask)
-        output = _inference._pipeline.run(
-            rgba,
-            None,
-            req.seed,
-            stage1_only=False,
-            with_mesh_postprocess=False,
-            with_texture_baking=req.texture_baking,
-            with_layout_postprocess=False,
-            use_vertex_color=not req.texture_baking,
-            stage1_inference_steps=None,
+        log.info(
+            "Running inference (format=%s, seed=%d, texture_baking=%s, texture_size=%d)...",
+            fmt, req.seed, req.texture_baking, req.texture_size,
         )
+        rgba = _inference.merge_mask_to_rgba(img, mask)
+
+        # Temporarily patch postprocess_slat_output to honour the requested
+        # texture_size (the pipeline hardcodes 1024).  The lock guarantees
+        # no other request can interfere while the patch is active.
+        pipeline = _inference._pipeline
+        _orig_postprocess = pipeline.postprocess_slat_output
+
+        def _patched_postprocess(outputs, with_mesh_postprocess, with_texture_baking, use_vertex_color):
+            from sam3d_objects.model.backbone.tdfy_dit.utils import postprocessing_utils
+            if "mesh" in outputs:
+                glb = postprocessing_utils.to_glb(
+                    outputs["gaussian"][0],
+                    outputs["mesh"][0],
+                    simplify=0.95,
+                    texture_size=req.texture_size,
+                    verbose=False,
+                    with_mesh_postprocess=with_mesh_postprocess,
+                    with_texture_baking=with_texture_baking,
+                    use_vertex_color=use_vertex_color,
+                    rendering_engine=pipeline.rendering_engine,
+                )
+            else:
+                glb = None
+            outputs["glb"] = glb
+            if "gaussian" in outputs:
+                outputs["gs"] = outputs["gaussian"][0]
+            if "gaussian_4" in outputs:
+                outputs["gs_4"] = outputs["gaussian_4"][0]
+            return outputs
+
+        pipeline.postprocess_slat_output = _patched_postprocess
+        try:
+            output = pipeline.run(
+                rgba,
+                None,
+                req.seed,
+                stage1_only=False,
+                with_mesh_postprocess=req.texture_baking,  # decimate before UV baking
+                with_texture_baking=req.texture_baking,
+                with_layout_postprocess=False,
+                use_vertex_color=not req.texture_baking,
+                stage1_inference_steps=None,
+            )
+        finally:
+            pipeline.postprocess_slat_output = _orig_postprocess
+
         log.info("Inference complete.")
 
         out_path = Path(out_wsl)
