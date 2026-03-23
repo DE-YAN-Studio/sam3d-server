@@ -8,5 +8,11 @@ echo  Health:      http://localhost:8766/health
 echo.
 echo  Press Ctrl+C to stop.
 echo.
-wsl -e bash -c "cd /home/zachk/sam-3d-objects && /home/zachk/miniconda3/envs/sam3d-objects/bin/python -u server.py"
+
+set REPO_DIR=%~dp0
+set REPO_DIR_NOSLASH=%REPO_DIR:~0,-1%
+for /f "delims=" %%i in ('wsl wslpath "%REPO_DIR_NOSLASH%"') do set WSL_REPO_DIR=%%i
+set WSL_REPO_DIR=%WSL_REPO_DIR%/
+
+wsl -- bash "%WSL_REPO_DIR%start_server.sh"
 pause
